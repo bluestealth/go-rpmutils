@@ -22,6 +22,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/ulikunitz/xz/lzma"
 	"github.com/xi2/xz"
@@ -29,7 +30,7 @@ import (
 
 // Wrap RPM payload with uncompress reader, assumes that header has
 // already been read.
-func uncompressRpmPayloadReader(r io.Reader, hdr *RpmHeader) (io.Reader, error) {
+func uncompressRpmPayloadReader(r io.Reader, hdr *RpmHeader) (io.ReadCloser, error) {
 	// Check to make sure payload format is a cpio archive. If the tag does
 	// not exist, assume archive is cpio.
 	if hdr.HasTag(PAYLOADFORMAT) {
@@ -73,23 +74,22 @@ func uncompressRpmPayloadReader(r io.Reader, hdr *RpmHeader) (io.Reader, error) 
 	case "gzip":
 		return gzip.NewReader(r)
 	case "bzip2":
-		return bzip2.NewReader(r), nil
+		return ioutil.NopCloser(bzip2.NewReader(r)), nil
 	case "lzma":
-		return lzma.NewReader(r)
+		lzmaDecoder, err := lzma.NewReader(r)
+		if err != nil {
+			return nil, err
+		}
+		return ioutil.NopCloser(lzmaDecoder), nil
 	case "xz":
-		return xz.NewReader(r, 0)
+		xzDecoder, err := xz.NewReader(r, 0)
+		if err != nil {
+			return nil, err
+		}
+		return ioutil.NopCloser(xzDecoder), nil
 	case "uncompressed":
-		// prevent ExpandPayload from closing the underlying file
-		return noCloseWrapper{r}, nil
+		return ioutil.NopCloser(r), nil
 	default:
 		return nil, fmt.Errorf("Unknown compression type %s", compression)
 	}
-}
-
-type noCloseWrapper struct {
-	r io.Reader
-}
-
-func (w noCloseWrapper) Read(d []byte) (int, error) {
-	return w.r.Read(d)
 }

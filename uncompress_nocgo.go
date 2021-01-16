@@ -13,15 +13,5 @@ func newZstdReader(r io.Reader) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zstdCloser{Decoder: decoder}, nil
-}
-
-// wrap Decoder so it implements io.Closer properly
-type zstdCloser struct {
-	*zstd.Decoder
-}
-
-func (d zstdCloser) Close() error {
-	d.Decoder.Close()
-	return nil
+	return decoder.IOReadCloser(), nil
 }

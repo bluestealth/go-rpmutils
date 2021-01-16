@@ -18,6 +18,7 @@ package cpio
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"testing"
 	"testing/iotest"
@@ -29,7 +30,8 @@ func TestReadStripped(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	r := NewReaderWithSizes(iotest.HalfReader(f), []int64{3, 6})
+	r := NewReaderWithSizes(ioutil.NopCloser(iotest.HalfReader(f)), []int64{3, 6})
+	defer r.Close()
 	h, err := r.Next()
 	if err != nil {
 		t.Fatal(err)

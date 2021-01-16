@@ -54,9 +54,7 @@ func (rpm *Rpm) ExpandPayload(dest string) error {
 	if err != nil {
 		return err
 	}
-	if c, ok := pld.(io.Closer); ok {
-		defer c.Close()
-	}
+	defer pld.Close()
 	return cpio.Extract(pld, dest)
 }
 

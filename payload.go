@@ -34,10 +34,11 @@ type PayloadReader interface {
 	Next() (FileInfo, error)
 	Read([]byte) (int, error)
 	IsLink() bool
+	Close() error
 }
 
 type payloadReader struct {
-	stream  io.Reader
+	stream  io.ReadCloser
 	cr      *cpio.Reader
 	files   []*fileInfo
 	fileMap map[string]int
@@ -45,7 +46,7 @@ type payloadReader struct {
 	index   int
 }
 
-func newPayloadReader(r io.Reader, files []FileInfo) *payloadReader {
+func newPayloadReader(r io.ReadCloser, files []FileInfo) *payloadReader {
 	pr := &payloadReader{
 		stream:  r,
 		files:   make([]*fileInfo, len(files)),
@@ -83,10 +84,6 @@ func newPayloadReader(r io.Reader, files []FileInfo) *payloadReader {
 func (pr *payloadReader) Next() (FileInfo, error) {
 	hdr, err := pr.cr.Next()
 	if err != nil {
-		// close decompressor on EOF, zstd in particular leaks goroutines otherwise
-		if c, ok := pr.stream.(io.Closer); ok {
-			c.Close()
-		}
 		return nil, err
 	}
 	var index int
@@ -112,6 +109,10 @@ func (pr *payloadReader) Next() (FileInfo, error) {
 
 func (pr *payloadReader) Read(d []byte) (int, error) {
 	return pr.cr.Read(d)
+}
+
+func (pr *payloadReader) Close() error {
+	return pr.cr.Close()
 }
 
 func (pr *payloadReader) IsLink() bool {
