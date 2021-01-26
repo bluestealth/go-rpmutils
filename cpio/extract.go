@@ -42,7 +42,7 @@ const (
 )
 
 // Extract the contents of a cpio stream from r to the destination directory dest
-func Extract(rs io.Reader, dest string) error {
+func Extract(rs io.ReadCloser, dest string) error {
 	dest = filepath.Clean(filepath.FromSlash(dest))
 	linkMap := make(map[int][]string)
 

@@ -23,11 +23,11 @@ type Reader struct {
 	cur_ent *CpioEntry
 }
 
-func NewReader(stream io.Reader) *Reader {
+func NewReader(stream io.ReadCloser) *Reader {
 	return NewReaderWithSizes(stream, nil)
 }
 
-func NewReaderWithSizes(stream io.Reader, sizes []int64) *Reader {
+func NewReaderWithSizes(stream io.ReadCloser, sizes []int64) *Reader {
 	cstream := NewCpioStream(stream)
 	cstream.SetFileSizes(sizes)
 	return &Reader{
@@ -49,4 +49,8 @@ func (r *Reader) Next() (*Cpio_newc_header, error) {
 
 func (r *Reader) Read(p []byte) (n int, err error) {
 	return r.cur_ent.payload.Read(p)
+}
+
+func (r *Reader) Close() error {
+	return r.stream.Close()
 }

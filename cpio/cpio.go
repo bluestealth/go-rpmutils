@@ -38,11 +38,11 @@ type CpioStream struct {
 }
 
 type countingReader struct {
-	stream   io.Reader
+	stream   io.ReadCloser
 	curr_pos int64
 }
 
-func NewCpioStream(stream io.Reader) *CpioStream {
+func NewCpioStream(stream io.ReadCloser) *CpioStream {
 	return &CpioStream{
 		stream: &countingReader{
 			stream:   stream,
@@ -125,6 +125,10 @@ func (cs *CpioStream) readStrippedEntry(hdr *Cpio_newc_header) (*CpioEntry, erro
 	return &CpioEntry{Header: hdr, payload: payload}, nil
 }
 
+func (cs *CpioStream) Close() error {
+	return cs.stream.Close()
+}
+
 func (cr *countingReader) Read(p []byte) (n int, err error) {
 	n, err = cr.stream.Read(p)
 	cr.curr_pos += int64(n)
@@ -144,6 +148,10 @@ func (cr *countingReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 	return int64(n), nil
+}
+
+func (cr *countingReader) Close() error {
+	return cr.stream.Close()
 }
 
 func pad(num int) int {

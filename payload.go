@@ -28,6 +28,7 @@ type PayloadReader interface {
 	Next() (FileInfo, error)
 	Read([]byte) (int, error)
 	IsLink() bool
+	Close() error
 }
 
 type payloadReader struct {
@@ -38,7 +39,7 @@ type payloadReader struct {
 	index   int
 }
 
-func newPayloadReader(r io.Reader, files []FileInfo) *payloadReader {
+func newPayloadReader(r io.ReadCloser, files []FileInfo) *payloadReader {
 	pr := &payloadReader{
 		files:   make([]*fileInfo, len(files)),
 		fileMap: make(map[string]int, len(files)),
@@ -97,6 +98,10 @@ func (pr *payloadReader) Next() (FileInfo, error) {
 
 func (pr *payloadReader) Read(d []byte) (int, error) {
 	return pr.cr.Read(d)
+}
+
+func (pr *payloadReader) Close() error {
+	return pr.cr.Close()
 }
 
 func (pr *payloadReader) IsLink() bool {

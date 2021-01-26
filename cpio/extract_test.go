@@ -37,7 +37,9 @@ func TestExtract(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	hf := iotest.HalfReader(f)
+	hf := ioutil.NopCloser(iotest.HalfReader(f))
+	defer hf.Close()
+
 	if err := Extract(hf, tmpdir); err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +48,9 @@ func TestExtract(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hf = iotest.HalfReader(f)
+	hf = ioutil.NopCloser(iotest.HalfReader(f))
+	defer hf.Close()
+
 	if err := Extract(hf, tmpdir); err != nil {
 		t.Fatal(err)
 	}

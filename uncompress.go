@@ -21,6 +21,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/xi2/xz"
@@ -28,7 +29,7 @@ import (
 
 // Wrap RPM payload with uncompress reader, assumes that header has
 // already been read.
-func uncompressRpmPayloadReader(r io.Reader, hdr *RpmHeader) (io.Reader, error) {
+func uncompressRpmPayloadReader(r io.Reader, hdr *RpmHeader) (io.ReadCloser, error) {
 	// Check to make sure payload format is a cpio archive. If the tag does
 	// not exist, assume archive is cpio.
 	if hdr.HasTag(PAYLOADFORMAT) {
@@ -67,13 +68,21 @@ func uncompressRpmPayloadReader(r io.Reader, hdr *RpmHeader) (io.Reader, error) 
 	case "gzip":
 		return gzip.NewReader(r)
 	case "bzip2":
-		return bzip2.NewReader(r), nil
+		return ioutil.NopCloser(bzip2.NewReader(r)), nil
 	case "lzma", "xz":
-		return xz.NewReader(r, 0)
+		xzReader, err := xz.NewReader(r, 0)
+		if err != nil {
+			return nil, err
+		}
+		return ioutil.NopCloser(xzReader), nil
 	case "zstd":
-		return zstd.NewReader(r)
+		zstdDecoder, err := zstd.NewReader(r)
+		if err != nil {
+			return nil, err
+		}
+		return zstdDecoder.IOReadCloser(), nil
 	case "uncompressed":
-		return r, nil
+		return ioutil.NopCloser(r), nil
 	default:
 		return nil, fmt.Errorf("Unknown compression type %s", compression)
 	}
